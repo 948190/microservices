@@ -53,11 +53,23 @@ public class UserServiceImpl implements UserService {
 				() -> new ResourceNotFoundException("User with given id is not found on server !! : " + userId));
 		//fetch the rating from the rating service
 		//http://localhost:8083/ratings/users/121
-		ArrayList<Rating> ratingUser=resttemplate.getForObject("http://localhost:8083/ratings/users/"+user.getUserId(),ArrayList.class);
+		Rating[] ratingUser=resttemplate.getForObject("http://localhost:8083/ratings/users/"+user.getUserId(),Rating[].class);
 		logger.info("{} ",ratingUser);
+		List<Rating> ratings=Arrays.stream(ratingUser).toList();
 		
 		
-		user.setRatings(ratingUser);
+		List<Rating> ratinglist=ratings.stream().map(rating->{
+			
+			ResponseEntity<Hotel> forEntity=resttemplate.getForEntity("http://localhost:8081/hotels/"+rating.getHotelId(),Hotel.class);
+			Hotel hotel=forEntity.getBody();
+			logger.info("response status code: {}",forEntity.getStatusCode());
+				
+			rating.setHotel(hotel);
+			return rating;
+		}).collect(Collectors.toList());
+		
+		
+		user.setRatings(ratinglist);
 				
 		return user;
 	}
